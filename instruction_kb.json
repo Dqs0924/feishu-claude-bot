@@ -1,0 +1,550 @@
+{
+  "instructions": [
+    {
+      "oral": "输出hello world",
+      "standard": "输出 Hello World，用中文解释其含义",
+      "desc": "基础输出"
+    },
+    {
+      "oral": "输出你好世界",
+      "standard": "输出 你好，世界！",
+      "desc": "基础输出"
+    },
+    {
+      "oral": "写个排序",
+      "standard": "用 Python 写一个快速排序函数，包含详细注释和测试用例",
+      "desc": "排序算法"
+    },
+    {
+      "oral": "用Python写快速排序",
+      "standard": "用 Python 写一个快速排序函数，包含详细注释和测试用例",
+      "desc": "排序算法"
+    },
+    {
+      "oral": "帮我写个排序算法",
+      "standard": "用 Python 写一个快速排序函数，包含详细注释和测试用例",
+      "desc": "排序算法"
+    },
+    {
+      "oral": "帮我看看代码有啥错",
+      "standard": "检查当前项目代码，列出所有语法错误和逻辑警告",
+      "desc": "代码审查"
+    },
+    {
+      "oral": "检查代码",
+      "standard": "检查当前项目代码，列出所有语法错误和逻辑警告",
+      "desc": "代码审查"
+    },
+    {
+      "oral": "代码审查一下",
+      "standard": "检查当前项目代码，列出所有语法错误、逻辑缺陷、安全隐患和性能问题",
+      "desc": "代码审查"
+    },
+    {
+      "oral": "帮我检查下代码有什么问题",
+      "standard": "对当前项目代码进行全面审查，检查语法错误、逻辑缺陷、安全隐患和性能瓶颈",
+      "desc": "代码审查"
+    },
+    {
+      "oral": "写一个斐波那契",
+      "standard": "用 Python 写一个斐波那契数列生成函数，包含多种实现方式和测试",
+      "desc": "基础算法"
+    },
+    {
+      "oral": "帮我生成一个网页",
+      "standard": "用 HTML/CSS/JS 生成一个完整的个人主页，包含响应式设计和现代样式",
+      "desc": "Web开发"
+    },
+    {
+      "oral": "翻译这段文字",
+      "standard": "将以下文字翻译成英文",
+      "desc": "翻译"
+    },
+    {
+      "oral": "解释一下",
+      "standard": "用简洁的中文解释以下概念",
+      "desc": "知识问答"
+    },
+    {
+      "oral": "这是什么意思",
+      "standard": "用简洁的中文解释以下概念或代码",
+      "desc": "知识问答"
+    },
+    {
+      "oral": "执行命令",
+      "standard": "运行以下命令并返回执行结果",
+      "desc": "系统命令"
+    },
+    {
+      "oral": "创建一个文件",
+      "standard": "创建文件并写入指定内容",
+      "desc": "文件操作"
+    },
+    {
+      "oral": "帮我写个API",
+      "standard": "用 Python Flask/FastAPI 创建一个 REST API 端点，包含请求验证和错误处理",
+      "desc": "API开发"
+    },
+    {
+      "oral": "帮我设计数据库表",
+      "standard": "设计数据库表结构，包含字段定义、索引策略和表关系，输出完整 SQL DDL",
+      "desc": "数据库设计"
+    },
+    {
+      "oral": "设计一个数据库",
+      "standard": "设计数据库表结构，包含字段定义、索引策略和表关系，输出完整 SQL DDL",
+      "desc": "数据库设计"
+    },
+    {
+      "oral": "帮我调试这段代码",
+      "standard": "分析以下代码的逻辑，找出所有 bug 并给出修复方案",
+      "desc": "调试"
+    },
+    {
+      "oral": "这段代码哪里有问题",
+      "standard": "分析以下代码的逻辑，找出所有 bug 并给出修复方案",
+      "desc": "调试"
+    },
+    {
+      "oral": "帮我写单元测试",
+      "standard": "为以下代码编写完整的单元测试，覆盖正常路径、边界情况和异常处理",
+      "desc": "测试"
+    },
+    {
+      "oral": "帮我写测试",
+      "standard": "为以下代码编写完整的单元测试，覆盖正常路径、边界情况和异常处理",
+      "desc": "测试"
+    },
+    {
+      "oral": "这个功能怎么实现",
+      "standard": "分析需求并设计完整实现方案，包含架构设计、技术选型和核心代码",
+      "desc": "方案设计"
+    },
+    {
+      "oral": "怎么实现",
+      "standard": "分析需求并设计完整实现方案，包含架构设计、技术选型和核心代码",
+      "desc": "方案设计"
+    },
+    {
+      "oral": "优化一下性能",
+      "standard": "分析以下代码的性能瓶颈，给出具体优化方案和代码改进",
+      "desc": "性能优化"
+    },
+    {
+      "oral": "太慢了帮我优化",
+      "standard": "分析以下代码的性能瓶颈，给出具体优化方案和代码改进",
+      "desc": "性能优化"
+    },
+    {
+      "oral": "帮我写个爬虫",
+      "standard": "用 Python 写一个网络爬虫，包含请求头伪装、异常处理和结果保存",
+      "desc": "爬虫"
+    },
+    {
+      "oral": "爬取数据",
+      "standard": "用 Python 写一个网络爬虫，包含请求头伪装、异常处理和结果保存",
+      "desc": "爬虫"
+    },
+    {
+      "oral": "帮我写个脚本",
+      "standard": "用 Python 写一个实用的自动化脚本，包含错误处理和日志记录",
+      "desc": "脚本"
+    },
+    {
+      "oral": "帮我配置环境",
+      "standard": "检查当前项目环境配置，列出缺失的依赖和配置问题",
+      "desc": "环境配置"
+    },
+    {
+      "oral": "重构这段代码",
+      "standard": "重构以下代码，提高可读性、可维护性和性能，保持原有功能不变",
+      "desc": "重构"
+    },
+    {
+      "oral": "代码太乱了帮我整理",
+      "standard": "重构以下代码，提高可读性、可维护性和性能，保持原有功能不变",
+      "desc": "重构"
+    },
+    {
+      "oral": "帮我部署",
+      "standard": "提供详细的部署方案和步骤，包含环境准备、配置文件和启动命令",
+      "desc": "部署"
+    },
+    {
+      "oral": "帮我设计架构",
+      "standard": "设计系统架构方案，包含模块划分、数据流、接口定义和技术选型",
+      "desc": "架构设计"
+    },
+    {
+      "oral": "我想要一个什么东西",
+      "standard": "分析需求并设计实现方案，输出完整可运行的代码",
+      "desc": "通用开发"
+    },
+    {
+      "oral": "帮我写一下",
+      "standard": "理解需求后输出完整可运行的代码，包含必要的注释",
+      "desc": "通用开发"
+    },
+    {
+      "oral": "写个二分查找",
+      "standard": "用 Python 实现二分查找算法，包含递归和非递归两种方式，附时间复杂度分析",
+      "desc": "算法"
+    },
+    {
+      "oral": "BFS 广度优先搜索",
+      "standard": "用 Python 实现 BFS 广度优先搜索，包含图遍历和最短路径查找示例",
+      "desc": "算法"
+    },
+    {
+      "oral": "DFS 深度优先搜索",
+      "standard": "用 Python 实现 DFS 深度优先搜索，包含递归和栈两种实现方式",
+      "desc": "算法"
+    },
+    {
+      "oral": "写个冒泡排序",
+      "standard": "用 Python 实现冒泡排序，包含优化版本（提前终止）和性能对比",
+      "desc": "排序算法"
+    },
+    {
+      "oral": "堆排序",
+      "standard": "用 Python 实现堆排序算法，包含最大堆的构建和调整过程详解",
+      "desc": "排序算法"
+    },
+    {
+      "oral": "合并两个有序数组",
+      "standard": "用 Python 实现合并两个有序数组，要求时间复杂度 O(n+m)，空间复杂度 O(1)",
+      "desc": "算法"
+    },
+    {
+      "oral": "动态规划 背包问题",
+      "standard": "用 Python 实现 0-1 背包问题的动态规划解法，包含状态转移方程和路径还原",
+      "desc": "动态规划"
+    },
+    {
+      "oral": "最长公共子序列",
+      "standard": "用 Python 实现最长公共子序列（LCS）的动态规划解法，输出具体子序列",
+      "desc": "动态规划"
+    },
+    {
+      "oral": "写个链表反转",
+      "standard": "用 Python 实现单链表反转，包含迭代和递归两种方式，附详细注释",
+      "desc": "数据结构"
+    },
+    {
+      "oral": "检测链表环",
+      "standard": "用 Python 实现检测链表中是否有环的算法（快慢指针法），输出环的入口节点",
+      "desc": "数据结构"
+    },
+    {
+      "oral": "写一个 React 表单组件",
+      "standard": "用 React + TypeScript 写一个完整的表单组件，包含字段验证、错误提示和提交处理",
+      "desc": "React开发"
+    },
+    {
+      "oral": "React 列表渲染带 key",
+      "standard": "用 React + TypeScript 实现带 key 的列表渲染组件，包含增删改查功能和动画过渡",
+      "desc": "React开发"
+    },
+    {
+      "oral": "写一个 Vue 计数器",
+      "standard": "用 Vue 3 + TypeScript 写一个计数器组件，包含加、减、重置功能，使用 Composition API",
+      "desc": "Vue开发"
+    },
+    {
+      "oral": "Vue 父子组件通信",
+      "standard": "用 Vue 3 实现父子组件通信示例，包含 props、emit、provide/inject 三种方式",
+      "desc": "Vue开发"
+    },
+    {
+      "oral": "写一个 Modal 模态框组件",
+      "standard": "用 React + TypeScript 写一个可复用的 Modal 模态框组件，支持自定义标题、内容和底部按钮",
+      "desc": "前端组件"
+    },
+    {
+      "oral": "写一个可折叠的 Accordion",
+      "standard": "用 React + TypeScript 实现 Accordion 手风琴组件，支持单选/多选模式，包含动画效果",
+      "desc": "前端组件"
+    },
+    {
+      "oral": "写一个 RESTful API",
+      "standard": "用 Python FastAPI 写一个完整的 RESTful API，包含 CRUD 操作、请求验证、错误处理和 OpenAPI 文档",
+      "desc": "API开发"
+    },
+    {
+      "oral": "FastAPI 加数据库",
+      "standard": "用 FastAPI + SQLAlchemy + SQLite 构建一个带数据库的 REST API，包含模型定义、迁移和种子数据",
+      "desc": "API开发"
+    },
+    {
+      "oral": "写一个 GraphQL API",
+      "standard": "用 Python graphene 写一个 GraphQL API，包含 Schema 定义、Resolver 实现和查询示例",
+      "desc": "GraphQL"
+    },
+    {
+      "oral": "实现 JWT 认证",
+      "standard": "用 Python FastAPI 实现 JWT Token 认证中间件，包含登录、刷新 Token 和权限验证",
+      "desc": "认证授权"
+    },
+    {
+      "oral": "写一个中间件做日志",
+      "standard": "用 Python FastAPI 写一个请求日志中间件，记录请求方法、路径、响应时间和状态码",
+      "desc": "中间件"
+    },
+    {
+      "oral": "写一条复杂 SQL 查询",
+      "standard": "写一个包含 JOIN、GROUP BY、HAVING 和子查询的复杂 SQL 查询，并解释执行计划",
+      "desc": "SQL查询"
+    },
+    {
+      "oral": "数据库加索引",
+      "standard": "为现有数据库表设计索引策略，分析查询瓶颈，输出 CREATE INDEX 语句和性能对比",
+      "desc": "数据库优化"
+    },
+    {
+      "oral": "写个数据库迁移脚本",
+      "standard": "用 Alembic（SQLAlchemy）写一个数据库迁移脚本，包含新增表、添加字段和修改索引",
+      "desc": "数据库迁移"
+    },
+    {
+      "oral": "Redis 缓存设计",
+      "standard": "设计一个 Redis 缓存策略，包含缓存穿透/击穿/雪崩的解决方案和 TTL 设置规范",
+      "desc": "缓存设计"
+    },
+    {
+      "oral": "写一个 Dockerfile",
+      "standard": "为 Python FastAPI 应用写一个生产级 Dockerfile，包含多阶段构建、非 root 用户和运行健康检查",
+      "desc": "Docker部署"
+    },
+    {
+      "oral": "写 docker-compose 配置",
+      "standard": "写一个 docker-compose.yml，包含 Web 服务、PostgreSQL、Redis 和 Nginx，配置网络和数据卷",
+      "desc": "容器编排"
+    },
+    {
+      "oral": "写一个 GitHub Actions CI/CD",
+      "standard": "写一个 GitHub Actions 工作流配置文件，包含代码检查、单元测试、Docker 构建和自动部署",
+      "desc": "CI/CD"
+    },
+    {
+      "oral": "Kubernetes 部署配置",
+      "standard": "写一个 Kubernetes Deployment + Service + Ingress 配置文件，包含副本数、资源限制和健康检查",
+      "desc": "K8s部署"
+    },
+    {
+      "oral": "写 pytest 参数化测试",
+      "standard": "用 pytest 写参数化单元测试，覆盖正常路径、边界值和异常输入，使用 fixture 管理测试数据",
+      "desc": "单元测试"
+    },
+    {
+      "oral": "写 Mock 测试",
+      "standard": "用 unittest.mock 写 Mock 测试，模拟外部 API 调用、数据库操作和文件 IO，验证交互行为",
+      "desc": "Mock测试"
+    },
+    {
+      "oral": "写 E2E 端到端测试",
+      "standard": "用 Playwright 写端到端测试，覆盖用户登录、表单提交和页面导航的完整流程",
+      "desc": "E2E测试"
+    },
+    {
+      "oral": "性能压测脚本",
+      "standard": "用 Python locust 写一个 API 性能压测脚本，模拟并发用户、 ramp-up 策略和性能指标收集",
+      "desc": "性能测试"
+    },
+    {
+      "oral": "安全审查代码",
+      "standard": "对代码进行安全审查，重点检查 SQL 注入、XSS、CSRF、敏感信息泄露和不安全的依赖",
+      "desc": "安全审查"
+    },
+    {
+      "oral": "性能审查",
+      "standard": "对代码进行性能审查，识别时间复杂度瓶颈、内存泄漏风险和不合理的数据库查询",
+      "desc": "性能审查"
+    },
+    {
+      "oral": "代码风格检查",
+      "standard": "检查代码风格是否符合 PEP 8（Python）或 Airbnb（JS）规范，输出具体违规项和修复建议",
+      "desc": "代码规范"
+    },
+    {
+      "oral": "调试内存泄漏",
+      "standard": "分析 Python 程序的内存使用情况，使用 objgraph 或 tracemalloc 定位内存泄漏的根本原因",
+      "desc": "内存调试"
+    },
+    {
+      "oral": "调试并发问题",
+      "standard": "调试 Python 多线程/多进程程序中的竞态条件、死锁和线程安全问题，给出修复方案",
+      "desc": "并发调试"
+    },
+    {
+      "oral": "调试接口超时",
+      "standard": "排查 HTTP API 接口超时问题，使用 curl、tcpdump 或 Chrome DevTools 定位网络瓶颈",
+      "desc": "网络调试"
+    },
+    {
+      "oral": "重构为设计模式",
+      "standard": "识别代码中的设计模式应用机会，将过程式代码重构为使用策略模式或观察者模式",
+      "desc": "重构"
+    },
+    {
+      "oral": "提取重复代码",
+      "standard": "分析代码中的重复逻辑，提取为可复用的函数或类，消除代码异味（DRY 原则）",
+      "desc": "重构"
+    },
+    {
+      "oral": "简化复杂函数",
+      "standard": "对过长函数进行拆分重构，每个函数职责单一，圈复杂度降至 10 以内",
+      "desc": "重构"
+    },
+    {
+      "oral": "写个异步爬虫",
+      "standard": "用 Python aiohttp + asyncio 写一个异步网络爬虫，包含并发控制、重试机制和结果持久化",
+      "desc": "异步爬虫"
+    },
+    {
+      "oral": "爬虫绕过反爬",
+      "standard": "为爬虫添加反反爬措施：随机 User-Agent、IP 代理池、Cookie 池和请求频率限制",
+      "desc": "爬虫"
+    },
+    {
+      "oral": "爬取动态页面",
+      "standard": "用 Playwright 或 Selenium 爬取 JavaScript 动态渲染的页面，等待元素加载并处理分页",
+      "desc": "动态爬虫"
+    },
+    {
+      "oral": "写个文件批量重命名脚本",
+      "standard": "用 Python 写一个批量文件重命名脚本，支持正则匹配、预览模式和递归处理",
+      "desc": "脚本工具"
+    },
+    {
+      "oral": "写个日志分析脚本",
+      "standard": "用 Python 写一个 Nginx/应用日志分析脚本，统计访问量、错误率和响应时间分布",
+      "desc": "脚本工具"
+    },
+    {
+      "oral": "写个定时备份脚本",
+      "standard": "用 Python + crontab 写一个定时备份脚本，包含增量备份、压缩加密和旧备份自动清理",
+      "desc": "脚本工具"
+    },
+    {
+      "oral": "写个 CSV 数据处理脚本",
+      "standard": "用 Python pandas 写一个 CSV 数据清洗和处理脚本，包含去重、填充缺失值和导出报告",
+      "desc": "数据处理"
+    },
+    {
+      "oral": "配置 Python 虚拟环境",
+      "standard": "为项目配置 Python venv 或 poetry 虚拟环境，包含依赖管理、lock 文件和多环境配置",
+      "desc": "环境配置"
+    },
+    {
+      "oral": "配置 pre-commit 钩子",
+      "standard": "为 Git 仓库配置 pre-commit 钩子，包含 black、flake8、isort 和 mypy 代码检查",
+      "desc": "Git配置"
+    },
+    {
+      "oral": "配置 Nginx 反向代理",
+      "standard": "写一个 Nginx 反向代理配置文件，包含 SSL 终止、静态文件服务和 gzip 压缩",
+      "desc": "服务器配置"
+    },
+    {
+      "oral": "写一个 CLI 命令行工具",
+      "standard": "用 Python argparse 或 click 写一个 CLI 工具，包含子命令、参数验证和彩色输出",
+      "desc": "CLI开发"
+    },
+    {
+      "oral": "写一个进度条工具",
+      "standard": "用 Python 写一个终端进度条工具，支持多任务并行进度展示和 ETA 预估",
+      "desc": "CLI开发"
+    },
+    {
+      "oral": "画个数据图表",
+      "standard": "用 Python matplotlib 或 plotly 画数据可视化图表，包含折线图、柱状图和散点图，添加标题和图例",
+      "desc": "数据可视化"
+    },
+    {
+      "oral": "生成数据报表",
+      "standard": "用 Python pandas + openpyxl 生成 Excel 数据报表，包含透视表、图表和 conditional formatting",
+      "desc": "报表生成"
+    },
+    {
+      "oral": "写一个数据预处理脚本",
+      "standard": "用 Python pandas 写数据预处理脚本，包含缺失值处理、异常值检测和特征编码",
+      "desc": "数据处理"
+    },
+    {
+      "oral": "训练一个简单的模型",
+      "standard": "用 Python sklearn 训练一个分类或回归模型，包含数据分割、交叉验证和模型评估",
+      "desc": "机器学习"
+    },
+    {
+      "oral": "生成 API 文档",
+      "standard": "为 FastAPI 项目生成完整的 API 文档，包含请求/响应示例、错误码说明和认证方式",
+      "desc": "文档生成"
+    },
+    {
+      "oral": "写 README 文档",
+      "standard": "为项目写一份完整的 README.md，包含项目介绍、安装步骤、使用方法和贡献指南",
+      "desc": "文档生成"
+    },
+    {
+      "oral": "写个 WebSocket 服务",
+      "standard": "用 Python websockets 或 FastAPI 写一个 WebSocket 实时通信服务，包含心跳检测和连接管理",
+      "desc": "实时通信"
+    },
+    {
+      "oral": "写个聊天室后端",
+      "standard": "用 Python + WebSocket 实现一个多人在线聊天室后端，包含房间管理、消息广播和离线消息",
+      "desc": "实时通信"
+    },
+    {
+      "oral": "集成 RabbitMQ 消息队列",
+      "standard": "用 Python pika 集成 RabbitMQ 消息队列，包含生产者、消费者、消息确认和死信队列",
+      "desc": "消息队列"
+    },
+    {
+      "oral": "用 Redis Stream 做消息队列",
+      "standard": "用 Redis Stream 实现一个消息队列，包含生产者/消费者组、消息确认和_pending_ 监控",
+      "desc": "消息队列"
+    },
+    {
+      "oral": "接入 Prometheus 监控",
+      "standard": "为 Python 应用接入 Prometheus 监控，暴露 metrics 端点，配置 Grafana 仪表盘",
+      "desc": "监控"
+    },
+    {
+      "oral": "配置结构化日志",
+      "standard": "用 Python logging + JSON formatter 配置结构化日志，包含日志级别、文件路径和日志轮转",
+      "desc": "日志"
+    },
+    {
+      "oral": "做 i18n 国际化",
+      "standard": "为 React 前端项目接入 i18next 国际化方案，包含语言切换、复数形式和日期格式化",
+      "desc": "国际化"
+    },
+    {
+      "oral": "写个插入排序",
+      "standard": "用 Python 实现插入排序算法，分析最佳/最坏/平均时间复杂度，与冒泡排序对比",
+      "desc": "排序算法"
+    },
+    {
+      "oral": "写个选择排序",
+      "standard": "用 Python 实现选择排序算法，包含稳定性分析和与插入排序的性能对比",
+      "desc": "排序算法"
+    },
+    {
+      "oral": "拓扑排序",
+      "standard": "用 Python 实现有向无环图的拓扑排序（Kahn 算法和 DFS 两种方式）",
+      "desc": "图算法"
+    },
+    {
+      "oral": "写个 Shell 脚本",
+      "standard": "写一个 Bash Shell 脚本，包含参数解析、错误处理、日志输出和跨平台兼容处理",
+      "desc": "Shell脚本"
+    },
+    {
+      "oral": "写个 GitHub Actions 自动打标签",
+      "standard": "写 GitHub Actions 工作流，实现根据 commit 信息自动打语义版本标签（semantic-release）",
+      "desc": "CI/CD"
+    }
+  ],
+  "version": 4
+}

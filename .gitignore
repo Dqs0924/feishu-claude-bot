@@ -1,0 +1,13 @@
+__pycache__/
+rag_db/
+*.log
+outbox/
+inbox/
+handover/
+webhook/
+wechat-chat/
+ngrok*
+nul
+*.zip
+*.msi
+bore*
