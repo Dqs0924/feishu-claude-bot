@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-飞书 → Claude Code 远程智能调度系统 v3.1
+飞书 → Claude Code 远程智能调度系统 v3.3
 ==============================================
-新增功能（v3.1）：
-  • 配置外置化（config.json 统一管理）
-  • 上下文记忆机制（多轮对话 / 任务接续）
-  • 任务实时状态推送（"正在处理中..."）
+v3.3 新增：
+  • 管道+线程流式模式（claude.mode = "pipe"）
+  • 会话生命周期管理（空闲超时自动回收）
+  • 审批关键词检测（stdout 实时匹配）
+  • 向下兼容 legacy 模式（claude.mode = "legacy"）
 """
 
 import os
@@ -18,12 +19,17 @@ import logging
 import shutil
 import subprocess
 import requests
+import threading
 import feishu_cards as fc   # 飞书交互式卡片模块
 import skill_engine as se   # Skills引擎：指令精简+Token优化+任务分发
 import glob as glob_mod
 from datetime import datetime, timedelta
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+# v3.3 新增：会话管理器 + 管道模式
+import session_manager as sm
+import call_claude as claude_mod
 
 # ── 路径常量 ──────────────────────────────────────
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -138,6 +144,17 @@ except ImportError:
     RAG_AVAILABLE = False
     RAGEngine = None
     log.info("[RAG] 模块未安装，跳过 RAG 解析")
+
+# ── v3.3 会话管理器 ──────────────────────────────────
+CLAUDE_MODE = CONFIG.get("claude", {}).get("mode", "legacy")
+SESSION_TIMEOUT = CONFIG.get("session", {}).get("timeout_seconds", 600)
+session_mgr = sm.SessionManager(timeout_seconds=SESSION_TIMEOUT) if CLAUDE_MODE == "pipe" else None
+_pending_streams: dict[str, str] = {}  # chat_id → message_id 映射（流式回传用）
+
+if CLAUDE_MODE == "pipe":
+    log.info("[Session] 管道模式已启用（空闲回收: %s秒）", SESSION_TIMEOUT)
+else:
+    log.info("[Session] 使用 legacy 模式")
 
 # ═══════════════════════════════════════════════════════
 #  Agent 角色调度系统
@@ -843,7 +860,12 @@ class SmartRouter:
         return f"未识别到有效的角色名。请说\"切换到代码审查\"或\"激活后端架构师\"，也可以说\"列出角色\"查看全部可选角色。", True
 
     def _handle_task(self, instruction, agent_info=None, message_id=None, original_text=""):
-        """Skills引擎驱动：精简指令→Token优化→智能分发→Claude执行"""
+        """Skills引擎驱动：精简指令→Token优化→智能分发→Claude执行
+
+        返回:
+          legacy模式: (result_text, should_reply)
+          pipe模式:   (None, True) + 注册流式回调
+        """
 
         # Skill 1: 指令精简 — 提取结构化任务+生成精简提示词
         parsed = se.InstructionParser.parse(instruction)
@@ -873,7 +895,7 @@ class SmartRouter:
         # 构建极致精简prompt
         final_prompt = se.TokenOptimizer.build_lean_prompt(lean_prompt, agent_ctx, conv_ctx)
         prompt_size = len(final_prompt)
-        log.info(f"[Skill] 分发: model={model_tier} agent={need_agent} conv={need_conv} prompt={prompt_size}字")
+        log.info(f"[Skill] 分发: model={model_tier} agent={need_agent} conv={need_conv} prompt={prompt_size}字 mode={CLAUDE_MODE}")
 
         # 状态推送
         if CONFIG["status"].get("sending_processing_message", True) and message_id:
@@ -886,13 +908,48 @@ class SmartRouter:
         # 记录用户指令
         self.conv.add_user(instruction)
 
-        # 调用 Claude（精简prompt + 模型参数）
+        # ── v3.3 管道模式：异步流式回传 ──
+        if CLAUDE_MODE == "pipe" and session_mgr:
+            log.info("[Pipe] 写入会话: %s (model=%s)", CHAT_ID[:12], model_tier)
+            success = session_mgr.write(CHAT_ID, final_prompt, model_tier)
+            if success:
+                _pending_streams[CHAT_ID] = message_id
+            else:
+                reply_message(message_id, "[Session Error] Claude 会话写入失败，请稍后重试。")
+            return None, False  # 不立即回复，等待流式 drain
+
+        # ── Legacy 模式：阻塞等待 ──
         result = call_claude_lean(final_prompt, model_tier)
-
-        # 记录回复
         self.conv.add_assistant(result[:1000])
-
         return result, True
+
+
+# ═══════════════════════════════════════════════════════
+#  v3.3 会话输出 drain（流式回传）
+# ═══════════════════════════════════════════════════════
+
+def drain_pending_streams():
+    """轮询所有活跃会话的待发送输出，流式回传飞书
+
+    在 poll_loop 每次迭代中调用，非阻塞。
+    """
+    if CLAUDE_MODE != "pipe" or not session_mgr:
+        return
+
+    for chat_id, kind, data in session_mgr.drain_all():
+        msg_id = _pending_streams.get(chat_id)
+        if kind == 'data':
+            if msg_id:
+                reply_message(msg_id, data)
+        elif kind == 'approval':
+            # v3.4 预留：触发审批卡片
+            log.info("[Approval] %s: %s", chat_id[:12], data[:80])
+            if msg_id:
+                reply_message(msg_id, f"⚠️ Claude 需要您的审批：\n{data[:500]}\n\n请回复 /approve 批准，/deny 拒绝（30s 内）")
+        elif kind == 'exit':
+            log.info("[Session] %s 已结束 (exit=%s)", chat_id[:12], data)
+            if chat_id in _pending_streams:
+                del _pending_streams[chat_id]
 
 
 # ═══════════════════════════════════════════════════════
@@ -901,12 +958,13 @@ class SmartRouter:
 
 def poll_loop():
     log.info("=" * 55)
-    log.info("  飞书 → Claude Code  远程智能调度系统  v3.1")
+    log.info("  飞书 → Claude Code  远程智能调度系统  v3.3")
     log.info(f"  群聊 ID：{CHAT_ID}")
     log.info(f"  日志文件：{LOG_FILE}")
     log.info(f"  RAG 模块：{'启用' if RAG_AVAILABLE else '未安装'}")
     log.info(f"  Agent 目录：{AGENTS_DIR}")
     log.info(f"  配置外置化：{'已启用' if os.path.isfile(CONFIG_FILE) else '使用默认'}")
+    log.info(f"  Claude 模式：{CLAUDE_MODE}（{'流式回传' if CLAUDE_MODE == 'pipe' else '阻塞等待'}）")
     log.info("=" * 55)
 
     agents = AgentManager()
@@ -977,6 +1035,9 @@ def poll_loop():
                     reply_message(msg_id, reply_text)
                 elif not should_reply:
                     pass
+
+            # v3.3: drain 流式会话输出（pipe 模式）
+            drain_pending_streams()
 
         except KeyboardInterrupt:
             log.info("用户中断，已停止。")
