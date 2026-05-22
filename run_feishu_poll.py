@@ -30,8 +30,9 @@ from pathlib import Path
 # v3.3 新增：会话管理器 + 管道模式
 import session_manager as sm
 import call_claude as claude_mod
-# v3.4 新增：浏览器桥接
+# v3.4 新增：浏览器桥接 + 会话同步 + 精简回复
 import browser_bridge as bb
+import session_context as sc
 
 # ── 路径常量 ──────────────────────────────────────
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -687,6 +688,18 @@ class SmartRouter:
             return None, False
 
         # 模式切换指令
+        # /context /session — 查看当前会话上下文
+        if re.match(r'^(?:/)?(?:context|session|上下文|会话)\s*$', text, re.I):
+            ctx = sc.SessionContext(CHAT_ID)
+            summary = ctx.get_summary()
+            if summary:
+                return f"📊 当前会话状态\n\n{summary}", True
+            return "暂无会话记录。发送指令开始使用。", True
+
+        # /sync — 强制同步本地上下文
+        if re.match(r'^(?:/)?sync\s*$', text, re.I):
+            return "✅ 上下文已同步。本地 Claude 可在 .claude/shared_sessions/ 查看完整历史。", True
+
         mode_m = re.match(r'^(?:/)?mode\s+(workbuddy|claude|wb|c)\s*$', text, re.I)
         if mode_m:
             target = mode_m.group(1).lower()
@@ -746,14 +759,14 @@ class SmartRouter:
                     "• 自然语言自由输入，无需记命令"), True
         # 帮助类
         if re.search(r'(帮助|help|怎么用|如何使用|有什么命令)', t):
-            return ("使用方式（自然语言，无需格式）：\n\n"
-                    "• \"帮我写个快速排序\" → 执行编程任务\n"
-                    "• \"用代码审查帮我看代码\" → 指定Agent执行\n"
-                    "• \"切换到后端架构师\" → 激活Agent角色\n"
-                    "• \"现在有哪些角色\" → 查看全部Agent\n"
-                    "• \"/mode claude\" → 切换深度模式\n"
-                    "• \"/mode workbuddy\" → 切换轻量模式\n\n"
-                    f"当前模式：{self.mode}"), True
+            return ("📋 使用方式（自然语言，无需格式）\n\n"
+                    "• \"帮我写个快速排序\" → 编程任务\n"
+                    "• \"截图当前页面\" → 浏览器操作\n"
+                    "• \"切换到后端架构师\" → 激活角色\n"
+                    "• \"/context\" → 查看会话状态\n"
+                    "• \"/browse tabs\" → 浏览器标签页\n"
+                    "• \"/mode claude\" → 切换深度模式\n\n"
+                    "支持: 编程 | 浏览器 | Agent角色 | 文件", True), True
         return None
 
     # ── 内部方法 ─────────────────────────────────────
@@ -1036,13 +1049,18 @@ class SmartRouter:
             if success:
                 _pending_streams[CHAT_ID] = message_id
             else:
-                reply_message(message_id, "[Session Error] Claude 会话写入失败，请稍后重试。")
+                reply_message(message_id, "❌ Claude 会话写入失败")
             return None, False  # 不立即回复，等待流式 drain
 
         # ── Legacy 模式：阻塞等待 ──
         result = call_claude_lean(final_prompt, model_tier)
         self.conv.add_assistant(result[:1000])
-        return result, True
+
+        # v3.5: 精简回复 + 会话记录
+        compact = sc.compact_reply(result, instruction)
+        sc.SessionContext(CHAT_ID).record_task(instruction, result)
+
+        return compact, True
 
 
 # ═══════════════════════════════════════════════════════
@@ -1053,22 +1071,38 @@ def drain_pending_streams():
     """轮询所有活跃会话的待发送输出，流式回传飞书
 
     在 poll_loop 每次迭代中调用，非阻塞。
+    v3.5: pipe 模式下流式发送关键行，退出时发送精简摘要。
     """
     if CLAUDE_MODE != "pipe" or not session_mgr:
         return
 
+    # 累积各会话的输出行（用于退出时生成摘要）
+    _pipe_buffers = {} if not hasattr(drain_pending_streams, 'buffers') else drain_pending_streams.buffers
+    drain_pending_streams.buffers = _pipe_buffers
+
     for chat_id, kind, data in session_mgr.drain_all():
         msg_id = _pending_streams.get(chat_id)
         if kind == 'data':
-            if msg_id:
-                reply_message(msg_id, data)
+            _pipe_buffers.setdefault(chat_id, []).append(data)
+            # 仅发送代码块和关键行（不过度刷屏）
+            if len(_pipe_buffers[chat_id]) <= 3 or data.startswith("```") or len(data) < 60:
+                if msg_id:
+                    reply_message(msg_id, data)
         elif kind == 'approval':
-            # v3.4 预留：触发审批卡片
             log.info("[Approval] %s: %s", chat_id[:12], data[:80])
             if msg_id:
-                reply_message(msg_id, f"⚠️ Claude 需要您的审批：\n{data[:500]}\n\n请回复 /approve 批准，/deny 拒绝（30s 内）")
+                reply_message(msg_id, f"⚠️ 需要审批：\n{data[:300]}\n👉 回复 /approve 批准，/deny 拒绝")
         elif kind == 'exit':
             log.info("[Session] %s 已结束 (exit=%s)", chat_id[:12], data)
+            # 生成精简摘要作为最后一条回复
+            full_output = "\n".join(_pipe_buffers.get(chat_id, []))
+            if full_output and len(full_output) > 50:
+                ctx = sc.SessionContext(chat_id)
+                ctx.record_task(ctx.data.get("last_instruction", "流式会话"), full_output)
+            if msg_id and full_output:
+                compact = sc.compact_reply(full_output)
+                reply_message(msg_id, compact)
+            _pipe_buffers.pop(chat_id, None)
             if chat_id in _pending_streams:
                 del _pending_streams[chat_id]
 
