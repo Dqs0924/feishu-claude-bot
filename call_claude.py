@@ -251,7 +251,17 @@ class ClaudeSession:
             log.error("[ClaudeSession] read error: %s", e)
         finally:
             self._running = False
-            exit_code = self.process.poll() if self.process else -1
+            # 等待进程结束获取真实退出码（最多 5 秒）
+            exit_code = -1
+            if self.process:
+                try:
+                    exit_code = self.process.wait(timeout=5)
+                except Exception:
+                    try:
+                        self.process.kill()
+                        exit_code = self.process.wait(timeout=2)
+                    except Exception:
+                        pass
             self._out_queue.put(('exit', exit_code))
             log.info("[ClaudeSession] %s exited (code=%s)", self.session_id[:12], exit_code)
 

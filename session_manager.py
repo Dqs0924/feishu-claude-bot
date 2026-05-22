@@ -73,18 +73,21 @@ class SessionManager:
 
         返回: [(chat_id, kind, data), ...]
           kind: 'data' | 'approval' | 'exit'
+
+        注意：即使会话进程已退出，也会先 drain 残留输出再清理。
         """
         results = []
         with self._lock:
             dead = []
             for chat_id, session in self._sessions.items():
-                if not session.is_running:
-                    dead.append(chat_id)
-                    continue
+                # 先 drain 所有残留输出（包括已退出的进程）
                 for kind, data in session.drain_output():
                     results.append((chat_id, kind, data))
                     if kind == 'exit':
                         dead.append(chat_id)
+                # 再检查进程是否已死
+                if not session.is_running and chat_id not in dead:
+                    dead.append(chat_id)
             for chat_id in dead:
                 self._sessions.pop(chat_id, None)
                 self._last_active.pop(chat_id, None)

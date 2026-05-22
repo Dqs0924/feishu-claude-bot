@@ -30,6 +30,8 @@ from pathlib import Path
 # v3.3 新增：会话管理器 + 管道模式
 import session_manager as sm
 import call_claude as claude_mod
+# v3.4 新增：浏览器桥接
+import browser_bridge as bb
 
 # ── 路径常量 ──────────────────────────────────────
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -635,6 +637,14 @@ TECH_KEYWORDS = re.compile(
     r'修复|改|检查|审查|review|翻译|解释|分析|转换|运行|执行|命令|脚本'
 )
 
+# v3.4: 浏览器操作意图匹配
+BROWSER_PATTERN = re.compile(
+    r'(/browse)|(浏览器|截图|打开网页|打开.*网站|浏览.*页|看看.*页面|'
+    r'当前.*(?:页面|网页|标签)|切换.*标签|标签页|'
+    r'搜索.*网页|帮我看.*(?:GitHub|github|网站|网页|页面))',
+    re.I
+)
+
 MANAGE_PATTERNS = [
     (re.compile(r'(列出|查看|看看|显示|展示|有哪些|什么|多少).*(角色|agent|可用|所有)', re.I), 'list'),
     (re.compile(r'(角色|agent).*(列表|清单|有哪些|全部)', re.I), 'list'),
@@ -707,6 +717,8 @@ class SmartRouter:
             return self._handle_status(message_id), True
         elif intent == 'activate':
             return self._handle_activate(text, message_id), True
+        elif intent == 'browser':
+            return self._handle_browse(text, message_id)
         elif intent == 'agent_task':
             return self._handle_task(clean_text, agent_info, message_id, text)
         elif intent == 'task':
@@ -814,6 +826,9 @@ class SmartRouter:
                 return 'status'
             if any(w in text for w in ['角色', 'agent', '列表']):
                 return 'list'
+        # v3.4: 浏览器操作意图
+        if BROWSER_PATTERN.search(text):
+            return 'browser'
         if agent_info and (len(clean_text) < 4 or clean_text == text):
             return 'activate'
         if agent_info and len(clean_text) >= 4:
@@ -858,6 +873,112 @@ class SmartRouter:
                 self.agents.active_agent = info["name"].lower()
                 return f"已激活角色：{info['name']}（{info['domain']}）\n{info['description']}", True
         return f"未识别到有效的角色名。请说\"切换到代码审查\"或\"激活后端架构师\"，也可以说\"列出角色\"查看全部可选角色。", True
+
+    # ── v3.4 浏览器操作 ─────────────────────────────
+
+    def _handle_browse(self, text, message_id):
+        """处理浏览器操作指令
+
+        支持格式:
+          /browse tabs              → 列出所有标签页
+          /browse screenshot        → 截图当前页
+          /browse snapshot          → 获取页面快照
+          /browse <url>             → 导航到 URL + 截图
+          /browse analyze <描述>    → 导航当前页 + Claude 分析
+          截图当前页面               → 自然语言触发
+          打开百度搜索Python        → 自然语言触发
+        """
+        instruction = re.sub(r'^/browse\s*', '', text, flags=re.I).strip()
+        if not instruction:
+            instruction = text.strip()
+
+        log.info("[Browser] 指令: %s", instruction[:80])
+
+        # 子命令: tabs
+        if re.search(r'(tabs|标签|标签页|列出|列表)', instruction, re.I) and not re.search(r'截图|screenshot|快照|snapshot|打开|浏览|http', instruction, re.I):
+            try:
+                tabs = bb.list_tabs()
+                lines = [f"当前浏览器标签页（共 {len(tabs)} 个）：", ""]
+                for t in tabs:
+                    lines.append(f"  [{t['index']}] {t['title'][:60]}")
+                    lines.append(f"      {t['url'][:80]}")
+                return "\n".join(lines), True
+            except Exception as e:
+                return f"获取标签页失败: {e}\n请确认 Edge 调试端口 9222 已启动。", True
+
+        # 子命令: screenshot / 截图
+        if re.search(r'(screenshot|截图|截屏)', instruction, re.I) and not re.search(r'http|打开|浏览|analyze', instruction, re.I):
+            try:
+                filepath, url, title = bb.navigate_and_screenshot(bb.get_browser().get_current_url())
+                return f"当前页面截图\n标题: {title}\nURL: {url}\n截图已保存", True
+            except Exception as e:
+                return f"截图失败: {e}", True
+
+        # 子命令: snapshot / 快照
+        if re.search(r'(snapshot|快照|DOM|结构|内容|页面内容)', instruction, re.I) and not re.search(r'http|打开|浏览|analyze', instruction, re.I):
+            try:
+                b = bb.get_browser()
+                snap = b.snapshot(max_depth=3)
+                # 分段回传
+                return f"页面结构快照:\n{snap[:3000]}", True
+            except Exception as e:
+                return f"快照失败: {e}", True
+
+        # URL 导航 + 截图
+        url_match = re.search(r'(https?://[^\s]+)', instruction)
+        if url_match:
+            url = url_match.group(1)
+            try:
+                b = bb.get_browser()
+                b.navigate(url)
+                filepath, _, title = bb.navigate_and_screenshot(url)
+                return f"已打开 {url}\n标题: {title}\n截图已保存", True
+            except Exception as e:
+                return f"导航失败: {e}", True
+
+        # analyze: 当前页 + Claude 分析
+        if re.search(r'(analyze|分析|看看|帮我|解释|总结|介绍|说明)', instruction, re.I):
+            try:
+                b = bb.get_browser()
+                snap = b.snapshot(max_depth=4)
+                url = b.get_current_url()
+                title = b.evaluate("document.title")
+
+                # 构建 Claude 分析 prompt
+                analyze_prompt = (
+                    f"页面标题: {title}\n"
+                    f"URL: {url}\n\n"
+                    f"页面结构:\n{snap[:2500]}\n\n"
+                    f"用户问题: {instruction}\n"
+                    f"请基于页面内容回答问题，用中文回复。"
+                )
+                log.info("[Browser] Claude 分析: %s", instruction[:60])
+
+                # 调用 Claude 分析页面内容（阻塞，浏览器分析通常快速完成）
+                result = call_claude_lean(analyze_prompt, 'haiku')
+                return result, True
+            except Exception as e:
+                return f"分析失败: {e}", True
+
+        # 兜底: 尝试作为 URL 打开（bare domain）
+        if re.match(r'^[\w.-]+\.[a-z]{2,}', instruction.strip()):
+            url = f"https://{instruction.strip()}"
+            try:
+                b = bb.get_browser()
+                b.navigate(url)
+                filepath, _, title = bb.navigate_and_screenshot(url)
+                return f"已打开 {url}\n标题: {title}", True
+            except Exception as e:
+                return f"导航失败: {e}", True
+
+        # 未识别
+        return ("浏览器指令格式:\n"
+                "• /browse tabs — 查看所有标签页\n"
+                "• /browse screenshot — 截图当前页\n"
+                "• /browse snapshot — 页面结构快照\n"
+                "• /browse <url> — 打开网页\n"
+                "• /browse analyze <描述> — 分析当前页面\n"
+                "• \"截图当前页面\" — 自然语言"), True
 
     def _handle_task(self, instruction, agent_info=None, message_id=None, original_text=""):
         """Skills引擎驱动：精简指令→Token优化→智能分发→Claude执行
