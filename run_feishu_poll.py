@@ -154,6 +154,38 @@ SESSION_TIMEOUT = CONFIG.get("session", {}).get("timeout_seconds", 600)
 session_mgr = sm.SessionManager(timeout_seconds=SESSION_TIMEOUT) if CLAUDE_MODE == "pipe" else None
 _pending_streams: dict[str, str] = {}  # chat_id → message_id 映射（流式回传用）
 
+# ── v3.6 远程审批系统 ──────────────────────────────
+# 高风险操作关键词（触发审批）
+RISKY_PATTERNS = [
+    re.compile(r'(删除|remove|delete|rm\b|del\b)', re.I),
+    re.compile(r'(格式化|format|mkfs)', re.I),
+    re.compile(r'(系统文件|system32|/etc/|C:\\\\Windows)', re.I),
+    re.compile(r'(修改.*配置|修改.*注册表|regedit)', re.I),
+    re.compile(r'(关机|重启|shutdown|reboot)', re.I),
+    re.compile(r'(卸载|uninstall)', re.I),
+    re.compile(r'(chmod\s+777|sudo\s|root)', re.I),
+    re.compile(r'(DROP\s|TRUNCATE|DELETE\s+FROM)', re.I),
+    re.compile(r'(git\s+push\s+.*--force|git\s+reset\s+--hard)', re.I),
+]
+APPROVAL_TIMEOUT = 30  # 审批超时秒数
+
+# 待审批队列: {chat_id: {instruction, prompt, model, message_id, timestamp}}
+_pending_approvals: dict[str, dict] = {}
+
+def _check_risk(instruction: str) -> bool:
+    """检查指令是否包含高风险操作"""
+    for pat in RISKY_PATTERNS:
+        if pat.search(instruction):
+            return True
+    return False
+
+def _cleanup_expired_approvals():
+    """清理过期的审批请求"""
+    now = time.time()
+    expired = [cid for cid, a in _pending_approvals.items() if now - a["timestamp"] > APPROVAL_TIMEOUT]
+    for cid in expired:
+        del _pending_approvals[cid]
+
 if CLAUDE_MODE == "pipe":
     log.info("[Session] 管道模式已启用（空闲回收: %s秒）", SESSION_TIMEOUT)
 else:
@@ -688,6 +720,24 @@ class SmartRouter:
             return None, False
 
         # 模式切换指令
+        # /approve — 批准待审批操作
+        if re.match(r'^(?:/)?approve\s*$', text, re.I) and CHAT_ID in _pending_approvals:
+            pending = _pending_approvals.pop(CHAT_ID)
+            log.info("[Approval] 用户批准: %s", pending["instruction"][:60])
+            agent_info = pending.get("agent_info")
+            # 重新执行（带 --dangerously-skip-permissions）
+            result = call_claude_lean(pending["prompt"], pending["model"])
+            self.conv.add_assistant(result[:1000])
+            compact = sc.compact_reply(result, pending["instruction"])
+            sc.SessionContext(CHAT_ID).record_task(pending["instruction"], result)
+            return f"✅ 已批准并执行\n\n{compact}", True
+
+        # /deny — 拒绝待审批操作
+        if re.match(r'^(?:/)?deny\s*$', text, re.I) and CHAT_ID in _pending_approvals:
+            pending = _pending_approvals.pop(CHAT_ID)
+            log.info("[Approval] 用户拒绝: %s", pending["instruction"][:60])
+            return f"❌ 已取消: {pending['instruction'][:80]}", True
+
         # /context /session — 查看当前会话上下文
         if re.match(r'^(?:/)?(?:context|session|上下文|会话)\s*$', text, re.I):
             ctx = sc.SessionContext(CHAT_ID)
@@ -1039,6 +1089,50 @@ class SmartRouter:
             except Exception as e:
                 log.warning(f"[Card] 状态推送失败：{e}")
 
+        # ── v3.6 远程审批：高风险操作需飞书确认 ──
+        if _check_risk(instruction):
+            log.info("[Approval] 高风险指令，需要审批: %s", instruction[:80])
+            _cleanup_expired_approvals()
+            _pending_approvals[CHAT_ID] = {
+                "instruction": instruction,
+                "prompt": final_prompt,
+                "model": model_tier,
+                "agent_info": agent_info,
+                "message_id": message_id,
+                "timestamp": time.time(),
+            }
+            # 发送审批确认卡片（如果需要卡片，否则文本）
+            if fc and message_id:
+                try:
+                    from feishu_cards import send_card
+                    card = {
+                        "schema": "2.0",
+                        "header": {
+                            "title": {"tag": "plain_text", "content": "⚠️ 高风险操作确认"},
+                            "template": "orange",
+                        },
+                        "body": {
+                            "elements": [
+                                {"tag": "markdown",
+                                 "content": f"**操作**: {instruction[:200]}\n\n"
+                                           f"**模型**: {model_tier}\n"
+                                           f"**复杂度**: {'高' if parsed['is_complex'] else '中'}\n\n"
+                                           f"此操作涉及系统文件/配置/删除等高风险动作。"}
+                            ]
+                        }
+                    }
+                    send_card(message_id, card)
+                except Exception as e:
+                    log.warning(f"[Card] 审批卡片失败：{e}")
+            return (
+                f"⚠️ **高风险操作需确认**\n\n"
+                f"> {instruction[:150]}\n\n"
+                f"👉 回复 **/approve** 批准执行\n"
+                f"👉 回复 **/deny** 取消\n"
+                f"⏰ {APPROVAL_TIMEOUT}秒后自动取消",
+                True
+            )
+
         # 记录用户指令
         self.conv.add_user(instruction)
 
@@ -1193,6 +1287,9 @@ def poll_loop():
 
             # v3.3: drain 流式会话输出（pipe 模式）
             drain_pending_streams()
+
+            # v3.6: 清理过期的审批请求
+            _cleanup_expired_approvals()
 
         except KeyboardInterrupt:
             log.info("用户中断，已停止。")
