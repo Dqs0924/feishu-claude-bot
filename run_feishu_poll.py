@@ -65,9 +65,9 @@ def load_config():
     """从 config.json 加载配置，缺失项使用默认值"""
     defaults = {
         "feishu": {
-            "app_id": "cli_xxxxxxxxxxxxx",
-            "app_secret": "YOUR_SECRET_HERE",
-            "chat_id": "oc_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "app_id": "",
+            "app_secret": "",
+            "chat_id": "",
             "base_url": "https://open.feishu.cn/open-apis",
         },
         "claude": {
